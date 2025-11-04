@@ -1,0 +1,66 @@
+name: DevSecOps Pipeline (100% GitHub)
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # Job 1: Le Build (Validation CI)
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Node.js (v18)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+
+  # Job 2: Le SCA (Scan des dependances avec GitHub)
+  sca-scan:
+    name: SCA Scan (Dependency Review)
+    runs-on: ubuntu-latest
+    needs: build # S'execute apres le build
+    
+    # Permissions speciales pour lire le graphe de dependances
+    permissions:
+      contents: read
+      pull-requests: write # Pour pouvoir commenter sur la PR (optionnel)
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      # C'est "l'action" GitHub qui fait le scan SCA
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v3
+        with:
+          # Fait echouer le job si une faille critique est trouvee
+          fail-on-severity: critical
+          # (Vous pourriez aussi utiliser 'high' pour être plus strict)
+
+  # Job 3: Le SAST (Scan du code avec GitHub)
+  sast-scan:
+    name: SAST Scan (CodeQL)
+    runs-on: ubuntu-latest
+    needs: build
+    
+    # Permissions speciales pour le SAST
+    permissions:
+      security-events: write # Requis pour televerser les resultats
+      actions: read
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2

